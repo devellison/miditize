@@ -1,5 +1,4 @@
-
-# Miditize - converts images into MIDI
+# Miditize - converts images into MIDI for fun and profit
 
 import argparse
 from dataclasses import dataclass
@@ -10,17 +9,32 @@ import cv2
 import math
 
 
+# Black threshold when running channel gradient mode.
+kGradBlackThresh = 16
+
+# Black threshold for Threshold mode
+kThresh = 64
+
+#Default Y scale
+kScaleY = 0.1
+
+# Canny edge detector thresholds
+# https://en.wikipedia.org/wiki/Canny_edge_detector
+kCannyThresh1 = 150
+kCannyThresh2 = 200
+
 # Get and check our command-line arguments
 parser = argparse.ArgumentParser(description='MIDI-tize your images!')
 parser.add_argument("input_image", type=str, help="Input image file (required)")
 parser.add_argument("output_midi", type=str, help="Output MIDI file (required)")
-parser.add_argument("-y", type=float, default=0.1, help="Y scale (0.1 default)")
-parser.add_argument("-t", type=int,  default=64, help="Gray Threshold")
+parser.add_argument("-y", type=float, default=kScaleY, help="Y scale (0.1 is default)")
+parser.add_argument("-t", type=int,  default=kThresh, help="Gray Threshold (64 is default)")
 parser.add_argument("-g", action="store_true", help="Channel Gradient Mode")
 parser.add_argument("-s", action="store_true", help="Show resized image")
-parser.add_argument("-r", type=int, default=0, help="Rotation (0=none)")
+parser.add_argument("-r", type=int, default=0, help="Rotation (counter-clockwise, 0=none, 1=90, 2=180, 3=270)")
 parser.add_argument("-e", action="store_true", help="Edges")
 args = parser.parse_args()
+
 
 #_------------------------------------------------------
 # Note tracking class
@@ -74,9 +88,11 @@ def OnPixelThresh(midiFile, x, y, gray, yScale, threshold):
             AddNote(midiFile,NoteArray[x],yScale)
             NoteArray[x].reset()
 
+
 # Handle pixels in channel gradient mode
+# Here we threshold to levels and change notes/channels when levels change
 def OnPixelGrad(midiFile, x, y, gray, yScale):
-    if (gray < 16):
+    if (gray < kGradBlackThresh):
             if (NoteArray[x].noteVal >= 0):
                 NoteArray[x].end(y)
                 AddNote(midiFile,NoteArray[x],yScale)
@@ -98,6 +114,16 @@ def OnPixelGrad(midiFile, x, y, gray, yScale):
 # read image and convert it to grayscale
 image = Image.open(args.input_image).convert('L')
 
+# Rotate first, since we then clamp the size to 128
+if args.r > 0:
+    if args.r == 1:        
+        image = image.rotate(90,expand=True)
+    if args.r == 2:
+        image = image.rotate(180)
+    if args.r == 3:
+        image = image.rotate(270,expand=True)
+
+
 # rescale it so width is 128 across (128 notes in MIDI)
 # might apply y-scale here, but currently applying it to note length.
 ratio = 128.0/image.size[0]
@@ -110,11 +136,9 @@ imagePix = numpy.array(image)
 # if we want just edges, use a pretty arbitrary Canny
 # and convert it back for the preview
 if args.e:
-    edges = cv2.Canny(imagePix,150,200)
+    edges = cv2.Canny(imagePix,kCannyThresh1, kCannyThresh2)
     imagePix = cv2.convertScaleAbs(edges)
     image = Image.fromarray(imagePix)
-   
-
 
 # Preview the image if desired
 if args.s:
