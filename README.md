@@ -31,7 +31,7 @@ optional arguments:
   -t T         Gray Threshold (64 is default)
   -g           Channel Gradient Mode
   -s           Show resized image
-  -r R         Rotation (counter-clockwise, 0=none, 1=90, 2=180, 3=270)
+  -r R         Rotation (counter-clockwise, 0=none, 1=90, 2=180, 3=270, 4=flip v, 5=mirror)
   -e           Edges
 ```
 

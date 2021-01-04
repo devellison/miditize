@@ -2,7 +2,7 @@
 
 import argparse
 from dataclasses import dataclass
-from PIL import Image
+from PIL import Image, ImageOps
 from midiutil import MIDIFile
 import numpy
 import cv2
@@ -31,7 +31,7 @@ parser.add_argument("-y", type=float, default=kScaleY, help="Y scale (0.1 is def
 parser.add_argument("-t", type=int,  default=kThresh, help="Gray Threshold (64 is default)")
 parser.add_argument("-g", action="store_true", help="Channel Gradient Mode")
 parser.add_argument("-s", action="store_true", help="Show resized image")
-parser.add_argument("-r", type=int, default=0, help="Rotation (counter-clockwise, 0=none, 1=90, 2=180, 3=270)")
+parser.add_argument("-r", type=int, default=0, help="Rotation (counter-clockwise, 0=none, 1=90, 2=180, 3=270, 4=flip v, 5=mirror)")
 parser.add_argument("-e", action="store_true", help="Edges")
 args = parser.parse_args()
 
@@ -122,6 +122,10 @@ if args.r > 0:
         image = image.rotate(180)
     if args.r == 3:
         image = image.rotate(270,expand=True)
+    if args.r == 4:
+        image = ImageOps.flip(image)
+    if args.r == 5:
+        image = ImageOps.mirror(image)
 
 
 # rescale it so width is 128 across (128 notes in MIDI)
